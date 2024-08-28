@@ -63,13 +63,13 @@ class GameObject:
 class Apple(GameObject):
     """
     Класс, представляющий яблоко в игре.
-
     Атрибуты:
         body_color (tuple): Цвет тела яблока.
         Изначально задается значением APPLE_COLOR.
         position (tuple): Позиция яблока на экране.
         В ней мы вызываем функцию для случайного места генерации яблока.
     """
+
     def __init__(self):
         """Наследуем все от родительского класса и переопределяем."""
         super().__init__()
@@ -78,8 +78,10 @@ class Apple(GameObject):
         # Ставим яблоко в рандомную позицию.
 
     def randomize_position(self):
-        """ Функция, которая возвращает рандомную позицию яблока в координатах. """
-
+        """
+        Функция, которая возвращает рандомную
+        позицию яблока в координатах.
+        """
         # Случайным образом выбираем координаты х и у для яблока.
         position_x = randint(0, (GRID_WIDTH - 1)) * GRID_SIZE
         position_y = randint(0, (GRID_HEIGHT - 1)) * GRID_SIZE
@@ -94,25 +96,29 @@ class Apple(GameObject):
 class Snake(GameObject):
     """
     Класс, представляющий змейку в игре.
-
     Атрибуты:
         length (int): Длина змейки в кубиках. По умолчанию равна 1.
         positions (list): Список позиций змейки на экране.
         Изначально - центр экрана.
-        direction (str): Текущее направление движения змейки. По умолчанию 'RIGHT'.
-        next_direction (str): Следующее направление движения змейки, которое будет применено
+        direction (str): Текущее направление движения змейки.
+        По умолчанию 'RIGHT'.
+        next_direction (str): Следующее направление движения змейки,
+        которое будет применено
         после текущего обновления. По умолчанию None.
-        body_color (tuple): Цвет тела змейки. Изначально задается значением SNAKE_COLOR.
+        body_color (tuple): Цвет тела змейки.
+        Изначально задается значением SNAKE_COLOR.
         last (tuple or None): Позиция последнего элемента змейки для отрисовки.
         Изначально None.
     """
+
     def __init__(self):
         """Инициализация начальных значений атрибутов змейки."""
         super().__init__()
         self.length = 1  # По умолчанию змейка равна одному кубику.
         self.positions = [CENTER]  # Изначальная позиция змейки - центр.
         self.direction = RIGHT  # Изначальное направление змейки - вправо.
-        self.next_direction = None  # По умолчанию другое направление змейки None.
+        self.next_direction = None
+        # По умолчанию другое направление змейки None.
         self.body_color = SNAKE_COLOR
         self.last = None  # По умолчанию последний элемент змейки None.
 
@@ -128,7 +134,6 @@ class Snake(GameObject):
         Данный метод занимается движением нашей змейки,
         и проверками на направление.
         """
-
         head = self.get_head_position()
         # Получаем актуальные координаты нашей головы.
         x, y = head
@@ -182,7 +187,6 @@ class Snake(GameObject):
 
     def draw(self):
         """Данный метод отрисовывает змейку на графике."""
-
         for position in self.positions[:-1]:
             rect = (pygame.Rect(position, (GRID_SIZE, GRID_SIZE)))
             pygame.draw.rect(screen, self.body_color, rect)
