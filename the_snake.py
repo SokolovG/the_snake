@@ -60,6 +60,7 @@ class GameObject:
         """Метод отрисовки, который в будущем будет переопределяться."""
         pass
 
+
 class Apple(GameObject):
     """
     Класс, представляющий яблоко в игре.
@@ -92,6 +93,7 @@ class Apple(GameObject):
         rect = pygame.Rect(self.position, (GRID_SIZE, GRID_SIZE))
         pygame.draw.rect(screen, self.body_color, rect)
         pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
+
 
 class Snake(GameObject):
     """
@@ -134,48 +136,33 @@ class Snake(GameObject):
         Данный метод занимается движением нашей змейки,
         и проверками на направление.
         """
+        self.update_direction()
         head = self.get_head_position()
         # Получаем актуальные координаты нашей головы.
         x, y = head
+
         # Записываем их в переменные как координаты Х и У
-
-        self.update_direction()
         # Вызываем обновления направления перед его проверкой.
-
-        def direction_x(name):
-            if name == 'RIGHT':
-                new_position_x = (x + GRID_SIZE) % SCREEN_WIDTH
-            elif name == 'LEFT':
-                new_position_x = (x - GRID_SIZE) % SCREEN_WIDTH
-
-            self.position = (new_position_x, y)
-            self.positions.insert(0, self.position)
-
-        def direction_y(name):
-
-            if name == 'DOWN':
-                new_position_y = (y + GRID_SIZE) % SCREEN_HEIGHT
-            elif name == 'UP':
-                new_position_y = (y - GRID_SIZE) % SCREEN_HEIGHT
-
-            self.position = (x, new_position_y)
-            self.positions.insert(0, self.position)
-
         if self.direction == RIGHT:
-            direction_x('RIGHT')
-
+            x = (x + GRID_SIZE) % SCREEN_WIDTH
         elif self.direction == LEFT:
-            direction_x('LEFT')
-
+            x = (x - GRID_SIZE) % SCREEN_WIDTH
         elif self.direction == DOWN:
-            direction_y('DOWN')
-
+            y = (y + GRID_SIZE) % SCREEN_HEIGHT
         elif self.direction == UP:
-            direction_y('UP')
+            y = (y - GRID_SIZE) % SCREEN_HEIGHT
+
+        new_position = (x, y)
+        self.positions.insert(0, new_position)
 
         if len(self.positions) > self.length:
-            self.last = self.positions[-1]
-            self.positions.pop(-1)
+            self.remove_last_segment()
+
+        self.next_direction = None
+
+    def remove_last_segment(self):
+        """Удаляет последний элемент, имитируя движение"""
+        self.last = self.positions.pop()
 
     def grow(self):
         """
@@ -216,6 +203,7 @@ class Snake(GameObject):
         self.positions = [CENTER]
         self.direction = choice(DIRECTIONS)
 
+
 def handle_keys(game_object):
     """Функция отвечающая за реагирование на пользователя."""
     for event in pygame.event.get():
@@ -232,6 +220,7 @@ def handle_keys(game_object):
             elif event.key == pygame.K_RIGHT and game_object.direction != LEFT:
                 game_object.next_direction = RIGHT
 
+
 def main():
     """
     Главная функция, в которой прописано запуск всей игры змейка.
@@ -246,18 +235,22 @@ def main():
     while True:
         clock.tick(SPEED)
         handle_keys(snake)
-        apple.draw()
-        snake.draw()
-        snake.move()
 
         if apple.position == snake.get_head_position():
             snake.grow()
             apple.position = apple.randomize_position()
 
-        if snake.get_head_position() in snake.positions[1:]:
+        head = snake.get_head_position()
+        body = snake.positions[1:]
+        len_of_body = len(snake.positions)
+        if len_of_body > 2 and head in body:
+            # Голова змейки столкнулась с её телом.
             snake.reset()
             screen.fill(BOARD_BACKGROUND_COLOR)
 
+        apple.draw()
+        snake.draw()
+        snake.move()
         pygame.display.update()
 
 
