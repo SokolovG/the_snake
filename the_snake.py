@@ -1,6 +1,6 @@
 """Данный модуль представляет собой механику игры змейка."""
 from random import choice, randint
-import pygame
+import pygame as pg
 
 # Константы для размеров поля и сетки:
 SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
@@ -30,13 +30,13 @@ SNAKE_COLOR = (0, 255, 0)
 SPEED = 10
 
 # Настройка игрового окна:
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
+screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 
 # Заголовок окна игрового поля:
-pygame.display.set_caption('Змейка')
+pg.display.set_caption('Змейка')
 
 # Настройка времени:
-clock = pygame.time.Clock()
+clock = pg.time.Clock()
 
 
 # Тут опишите все классы игры.
@@ -54,11 +54,22 @@ class GameObject:
     def __init__(self):
         """Инициализатор, который создает позицию и цвет."""
         self.position = CENTER  # Начальная позиция объекта - центр.
+        self.positions = []
         self.body_color = None  # Цвет переопределям уже в других методах.
+        self.last = None
 
     def draw(self):
         """Метод отрисовки, который в будущем будет переопределяться."""
-        pass
+    def draw_rect(self, choice):
+        """Данный метод отрисовывает прямоугольник и возвращает его."""
+        if choice == 0:
+            rect = pg.Rect(self.positions[0], (GRID_SIZE, GRID_SIZE))
+        if choice == 1:
+            rect = pg.Rect(self.last, (GRID_SIZE, GRID_SIZE))
+        elif choice == 2:
+            rect = pg.Rect(self.position, (GRID_SIZE, GRID_SIZE))
+
+        return rect
 
 
 class Apple(GameObject):
@@ -75,8 +86,8 @@ class Apple(GameObject):
         """Наследуем все от родительского класса и переопределяем."""
         super().__init__()
         self.body_color = APPLE_COLOR
-        self.position = self.randomize_position()
         # Ставим яблоко в рандомную позицию.
+        self.position = self.randomize_position()
 
     def randomize_position(self):
         """
@@ -84,15 +95,18 @@ class Apple(GameObject):
         позицию яблока в координатах.
         """
         # Случайным образом выбираем координаты х и у для яблока.
-        position_x = randint(0, (GRID_WIDTH - 1)) * GRID_SIZE
-        position_y = randint(0, (GRID_HEIGHT - 1)) * GRID_SIZE
-        return (position_x, position_y)
+        while True:
+            position_x = randint(0, (GRID_WIDTH - 1)) * GRID_SIZE
+            position_y = randint(0, (GRID_HEIGHT - 1)) * GRID_SIZE
+            new_position = (position_x, position_y)
+            if new_position not in self.positions:
+                return (position_x, position_y)
 
     def draw(self):
         """Данный метод отрисовывает яблоко через библиотеку pygame."""
-        rect = pygame.Rect(self.position, (GRID_SIZE, GRID_SIZE))
-        pygame.draw.rect(screen, self.body_color, rect)
-        pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
+        rect = GameObject.draw_rect(self, 2)
+        pg.draw.rect(screen, self.body_color, rect)
+        pg.draw.rect(screen, BORDER_COLOR, rect, 1)
 
 
 class Snake(GameObject):
@@ -141,16 +155,8 @@ class Snake(GameObject):
         # Получаем актуальные координаты нашей головы.
         x, y = head
 
-        # Записываем их в переменные как координаты Х и У
-        # Вызываем обновления направления перед его проверкой.
-        if self.direction == RIGHT:
-            x = (x + GRID_SIZE) % SCREEN_WIDTH
-        elif self.direction == LEFT:
-            x = (x - GRID_SIZE) % SCREEN_WIDTH
-        elif self.direction == DOWN:
-            y = (y + GRID_SIZE) % SCREEN_HEIGHT
-        elif self.direction == UP:
-            y = (y - GRID_SIZE) % SCREEN_HEIGHT
+        x = (x + GRID_SIZE * self.direction[0]) % SCREEN_WIDTH
+        y = (y + GRID_SIZE * self.direction[1]) % SCREEN_WIDTH
 
         new_position = (x, y)
         self.positions.insert(0, new_position)
@@ -174,20 +180,19 @@ class Snake(GameObject):
 
     def draw(self):
         """Данный метод отрисовывает змейку на графике."""
-        for position in self.positions[:-1]:
-            rect = (pygame.Rect(position, (GRID_SIZE, GRID_SIZE)))
-            pygame.draw.rect(screen, self.body_color, rect)
-            pygame.draw.rect(screen, BORDER_COLOR, rect, 1)
+        rect = (pg.Rect(self.positions[0], (GRID_SIZE, GRID_SIZE)))
+        pg.draw.rect(screen, self.body_color, rect)
+        pg.draw.rect(screen, BORDER_COLOR, rect, 1)
 
         # Отрисовка головы змейки
-        head_rect = pygame.Rect(self.positions[0], (GRID_SIZE, GRID_SIZE))
-        pygame.draw.rect(screen, self.body_color, head_rect)
-        pygame.draw.rect(screen, BORDER_COLOR, head_rect, 1)
+        head_rect = GameObject.draw_rect(self, 0)
+        pg.draw.rect(screen, self.body_color, head_rect)
+        pg.draw.rect(screen, BORDER_COLOR, head_rect, 1)
 
         # Затирание последнего сегмента
         if self.last:
-            last_rect = pygame.Rect(self.last, (GRID_SIZE, GRID_SIZE))
-            pygame.draw.rect(screen, BOARD_BACKGROUND_COLOR, last_rect)
+            last_rect = GameObject.draw_rect(self, 1)
+            pg.draw.rect(screen, BOARD_BACKGROUND_COLOR, last_rect)
 
     def get_head_position(self):
         """
@@ -206,18 +211,18 @@ class Snake(GameObject):
 
 def handle_keys(game_object):
     """Функция отвечающая за реагирование на пользователя."""
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            pg.quit()
             raise SystemExit
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP and game_object.direction != DOWN:
+        if event.type == pg.KEYDOWN:
+            if event.key == pg.K_UP and game_object.direction != DOWN:
                 game_object.next_direction = UP
-            elif event.key == pygame.K_DOWN and game_object.direction != UP:
+            elif event.key == pg.K_DOWN and game_object.direction != UP:
                 game_object.next_direction = DOWN
-            elif event.key == pygame.K_LEFT and game_object.direction != RIGHT:
+            elif event.key == pg.K_LEFT and game_object.direction != RIGHT:
                 game_object.next_direction = LEFT
-            elif event.key == pygame.K_RIGHT and game_object.direction != LEFT:
+            elif event.key == pg.K_RIGHT and game_object.direction != LEFT:
                 game_object.next_direction = RIGHT
 
 
@@ -227,7 +232,7 @@ def main():
     Тут идет инициализация pygame, а также вечный цикл,
     в котором вызываются методы наших классов.
     """
-    pygame.init()  # Инициализация PyGame:
+    pg.init()  # Инициализация PyGame:
     # Тут нужно создать экземпляры классов.
     apple = Apple()
     snake = Snake()
@@ -251,7 +256,7 @@ def main():
         apple.draw()
         snake.draw()
         snake.move()
-        pygame.display.update()
+        pg.display.update()
 
 
 if __name__ == '__main__':
