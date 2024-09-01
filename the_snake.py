@@ -39,7 +39,6 @@ pg.display.set_caption('Змейка')
 clock = pg.time.Clock()
 
 
-# Тут опишите все классы игры.
 class GameObject:
     """
     Родительский класс, представляющий игровой объект,
@@ -60,16 +59,18 @@ class GameObject:
 
     def draw(self):
         """Метод отрисовки, который в будущем будет переопределяться."""
-    def draw_rect(self, choice):
-        """Данный метод отрисовывает прямоугольник и возвращает его."""
-        if choice == 0:
-            rect = pg.Rect(self.positions[0], (GRID_SIZE, GRID_SIZE))
-        if choice == 1:
-            rect = pg.Rect(self.last, (GRID_SIZE, GRID_SIZE))
-        elif choice == 2:
-            rect = pg.Rect(self.position, (GRID_SIZE, GRID_SIZE))
 
+    def draw_rect(self, position):
+        """Создаёт и возвращает объект прямоугольника (Rect)."""
+        rect = pg.Rect(position, (GRID_SIZE, GRID_SIZE))
         return rect
+
+    def draw_pg_rect(self, rect, color, width=0):
+        """
+        Отрисовывает прямоугольник на экране с заданным
+        цветом и шириной границы.
+        """
+        pg.draw.rect(screen, color, rect, width=width)
 
 
 class Apple(GameObject):
@@ -95,18 +96,24 @@ class Apple(GameObject):
         позицию яблока в координатах.
         """
         # Случайным образом выбираем координаты х и у для яблока.
-        while True:
-            position_x = randint(0, (GRID_WIDTH - 1)) * GRID_SIZE
-            position_y = randint(0, (GRID_HEIGHT - 1)) * GRID_SIZE
-            new_position = (position_x, position_y)
-            if new_position not in self.positions:
-                return (position_x, position_y)
+        grids = set()
+        # Количество клеток по оси X и по оси Y.
+        number_grid_x = GRID_WIDTH - 1
+        number_grid_y = GRID_HEIGHT - 1
+        for i in range(number_grid_x * number_grid_y):
+            position_x = randint(0, number_grid_x) * GRID_SIZE
+            position_y = randint(0, number_grid_y) * GRID_SIZE
+            grids.add((position_x, position_y))
+
+        free_grids = grids - set(self.positions)
+        choice_position = choice(list(free_grids))
+        return choice_position
 
     def draw(self):
         """Данный метод отрисовывает яблоко через библиотеку pygame."""
-        rect = GameObject.draw_rect(self, 2)
-        pg.draw.rect(screen, self.body_color, rect)
-        pg.draw.rect(screen, BORDER_COLOR, rect, 1)
+        rect = self.draw_rect(self.position)
+        self.draw_pg_rect(rect, self.body_color)
+        self.draw_pg_rect(rect, BORDER_COLOR, width=1)
 
 
 class Snake(GameObject):
@@ -151,14 +158,14 @@ class Snake(GameObject):
         и проверками на направление.
         """
         self.update_direction()
-        head = self.get_head_position()
         # Получаем актуальные координаты нашей головы.
-        x, y = head
+        head_x, head_y = self.get_head_position()
 
-        x = (x + GRID_SIZE * self.direction[0]) % SCREEN_WIDTH
-        y = (y + GRID_SIZE * self.direction[1]) % SCREEN_WIDTH
+        direction_x = self.direction[0]
+        direction_y = self.direction[1]
 
-        new_position = (x, y)
+        new_position = ((head_x + GRID_SIZE * direction_x) % SCREEN_WIDTH,
+                        (head_y + GRID_SIZE * direction_y) % SCREEN_WIDTH)
         self.positions.insert(0, new_position)
 
         if len(self.positions) > self.length:
@@ -181,26 +188,24 @@ class Snake(GameObject):
     def draw(self):
         """Данный метод отрисовывает змейку на графике."""
         rect = (pg.Rect(self.positions[0], (GRID_SIZE, GRID_SIZE)))
-        pg.draw.rect(screen, self.body_color, rect)
-        pg.draw.rect(screen, BORDER_COLOR, rect, 1)
+        self.draw_pg_rect(rect, self.body_color)
+        self.draw_pg_rect(rect, BORDER_COLOR, width=1)
 
         # Отрисовка головы змейки
-        head_rect = GameObject.draw_rect(self, 0)
-        pg.draw.rect(screen, self.body_color, head_rect)
-        pg.draw.rect(screen, BORDER_COLOR, head_rect, 1)
+        self.draw_pg_rect(rect, self.body_color)
+        self.draw_pg_rect(rect, BORDER_COLOR, width=1)
 
         # Затирание последнего сегмента
         if self.last:
-            last_rect = GameObject.draw_rect(self, 1)
-            pg.draw.rect(screen, BOARD_BACKGROUND_COLOR, last_rect)
+            last_rect = self.draw_rect(self.last)
+            self.draw_pg_rect(last_rect, BOARD_BACKGROUND_COLOR)
 
     def get_head_position(self):
         """
         С помощью данного метода мы получаем координаты
         нашей головы змейки в данный момент.
         """
-        result = self.positions[0]
-        return result
+        return self.positions[0]
 
     def reset(self):
         """Данный метод нужен для сброса змейки в изначальное положение."""
