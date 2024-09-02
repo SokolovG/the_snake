@@ -8,6 +8,9 @@ GRID_SIZE = 20
 GRID_WIDTH = SCREEN_WIDTH // GRID_SIZE
 GRID_HEIGHT = SCREEN_HEIGHT // GRID_SIZE
 CENTER = (SCREEN_WIDTH // 2), (SCREEN_HEIGHT // 2)
+NUMBER_GRID_X = GRID_WIDTH - 1
+NUMBER_GRID_Y = GRID_HEIGHT - 1
+ALL_GRIDS = NUMBER_GRID_X * NUMBER_GRID_Y
 # Направления движения:
 UP = (0, -1)
 DOWN = (0, 1)
@@ -60,17 +63,24 @@ class GameObject:
     def draw(self):
         """Метод отрисовки, который в будущем будет переопределяться."""
 
-    def draw_rect(self, position):
-        """Создаёт и возвращает объект прямоугольника (Rect)."""
+    def draw_rect(self, position, color=None):
+        """
+        Создаёт объект прямоугольника (Rect)
+        и отрисовывает его на экране.
+        """
         rect = pg.Rect(position, (GRID_SIZE, GRID_SIZE))
+        pg.draw.rect(screen, color or self.body_color, rect)
+        pg.draw.rect(screen, BORDER_COLOR, rect, width=1)
+
         return rect
 
-    def draw_pg_rect(self, rect, color, width=0):
+    def clear_rect(self, position):
         """
-        Отрисовывает прямоугольник на экране с заданным
-        цветом и шириной границы.
+        Данный метод затирает последний объект,
+        чтобы змейка двигалась
         """
-        pg.draw.rect(screen, color, rect, width=width)
+        rect = pg.Rect(position, (GRID_SIZE, GRID_SIZE))
+        pg.draw.rect(screen, BOARD_BACKGROUND_COLOR, rect)
 
 
 class Apple(GameObject):
@@ -96,24 +106,20 @@ class Apple(GameObject):
         позицию яблока в координатах.
         """
         # Случайным образом выбираем координаты х и у для яблока.
-        grids = set()
+        all_grids = set()
         # Количество клеток по оси X и по оси Y.
-        number_grid_x = GRID_WIDTH - 1
-        number_grid_y = GRID_HEIGHT - 1
-        for i in range(number_grid_x * number_grid_y):
-            position_x = randint(0, number_grid_x) * GRID_SIZE
-            position_y = randint(0, number_grid_y) * GRID_SIZE
-            grids.add((position_x, position_y))
+        for i in range(ALL_GRIDS):
+            position_x = randint(0, NUMBER_GRID_X) * GRID_SIZE
+            position_y = randint(0, NUMBER_GRID_Y) * GRID_SIZE
+            all_grids.add((position_x, position_y))
 
-        free_grids = grids - set(self.positions)
+        free_grids = all_grids - set(self.positions)
         choice_position = choice(list(free_grids))
         return choice_position
 
     def draw(self):
         """Данный метод отрисовывает яблоко через библиотеку pygame."""
-        rect = self.draw_rect(self.position)
-        self.draw_pg_rect(rect, self.body_color)
-        self.draw_pg_rect(rect, BORDER_COLOR, width=1)
+        self.draw_rect(self.position)
 
 
 class Snake(GameObject):
@@ -161,8 +167,7 @@ class Snake(GameObject):
         # Получаем актуальные координаты нашей головы.
         head_x, head_y = self.get_head_position()
 
-        direction_x = self.direction[0]
-        direction_y = self.direction[1]
+        direction_x, direction_y = self.direction
 
         new_position = ((head_x + GRID_SIZE * direction_x) % SCREEN_WIDTH,
                         (head_y + GRID_SIZE * direction_y) % SCREEN_WIDTH)
@@ -187,18 +192,11 @@ class Snake(GameObject):
 
     def draw(self):
         """Данный метод отрисовывает змейку на графике."""
-        rect = (pg.Rect(self.positions[0], (GRID_SIZE, GRID_SIZE)))
-        self.draw_pg_rect(rect, self.body_color)
-        self.draw_pg_rect(rect, BORDER_COLOR, width=1)
-
-        # Отрисовка головы змейки
-        self.draw_pg_rect(rect, self.body_color)
-        self.draw_pg_rect(rect, BORDER_COLOR, width=1)
+        self.draw_rect(self.positions[0])  # Отрисовка головы змейки
 
         # Затирание последнего сегмента
         if self.last:
-            last_rect = self.draw_rect(self.last)
-            self.draw_pg_rect(last_rect, BOARD_BACKGROUND_COLOR)
+            self.clear_rect(self.last)
 
     def get_head_position(self):
         """
